@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}AI Helper | Learn About Nature{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/ai_helper.css' %}">
+{% endblock %}
+
+{% block content %}
+  <main class="ai-helper-shell">
+    <section class="ai-search-card">
+      <h2>AI Helper</h2>
+      <p>Search for a species name and get a quick Wikipedia summary, thumbnail, and a link to the full article.</p>
+
+      <div class="ai-search-row">
+        <input id="ai-search-input" type="search" placeholder="Type a species name, e.g. tiger, frog, red fox" autocomplete="off" />
+        <button id="ai-search-button" type="button" class="btn">Search</button>
+      </div>
+      <p id="ai-status" class="ai-status-text"></p>
+    </section>
+
+    <section id="ai-results" class="ai-results-grid"></section>
+  </main>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{% static 'js/ai_helper.js' %}"></script>
+{% endblock %}

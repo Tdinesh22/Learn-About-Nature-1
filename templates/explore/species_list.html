@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Species | Learn About Nature{% endblock %}
+
+{% block content %}
+  <section class="intro-block compact">
+    <h2>Species Directory</h2>
+    <p>Choose one category to browse birds, insects, mammals, reptiles, amphibians, or fish.</p>
+  </section>
+
+  <section class="filter-bar">
+    <a href="{% url 'species_list' %}{% if search_query %}?q={{ search_query|urlencode }}{% endif %}" class="{% if active_category == 'all' %}active{% endif %}">All</a>
+    <a href="{% url 'species_list' %}?category=bird{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="{% if active_category == 'bird' %}active{% endif %}">Birds</a>
+    <a href="{% url 'species_list' %}?category=insect{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="{% if active_category == 'insect' %}active{% endif %}">Insects</a>
+    <a href="{% url 'species_list' %}?category=mammal{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="{% if active_category == 'mammal' %}active{% endif %}">Mammals</a>
+    <a href="{% url 'species_list' %}?category=reptile{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="{% if active_category == 'reptile' %}active{% endif %}">Reptiles</a>
+    <a href="{% url 'species_list' %}?category=amphibian{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="{% if active_category == 'amphibian' %}active{% endif %}">Amphibians</a>
+    <a href="{% url 'species_list' %}?category=fish{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="{% if active_category == 'fish' %}active{% endif %}">Fish</a>
+  </section>
+
+  <form method="get" class="search-bar">
+    {% if active_category != 'all' %}
+      <input type="hidden" name="category" value="{{ active_category }}">
+    {% endif %}
+    <input type="text" name="q" placeholder="Search species name" value="{{ search_query }}">
+    <button type="submit" class="btn small">Search</button>
+  </form>
+
+  {% if api_error %}
+    <div class="empty-state">
+      <p>{{ api_error }}</p>
+    </div>
+  {% else %}
+    <p class="results-note">Showing {{ species_list|length }} results from iNaturalist{% if total_results %} out of {{ total_results }} total{% endif %}{% if api_version %} using {{ api_version|upper }}{% endif %}.</p>
+  {% endif %}
+
+  <section class="species-grid">
+    {% for item in species_list %}
+      <article class="species-card">
+        {% if item.image_url %}
+          <img src="{{ item.image_url }}" alt="{{ item.name }}">
+        {% endif %}
+        <div class="species-body">
+          <span class="tag">{{ item.category_label }}</span>
+          <h3>{{ item.common_name }}</h3>
+          <p><strong>Scientific name:</strong> {{ item.name }}</p>
+          <p><strong>Observations:</strong> {{ item.observations_count }}</p>
+          <p><strong>Status:</strong> {{ item.threatened_status }}</p>
+          <p>{{ item.summary|truncatechars:150 }}</p>
+          {% if item.wikipedia_url %}
+            <a href="{{ item.wikipedia_url }}" class="btn small" target="_blank" rel="noopener noreferrer">Open Info</a>
+          {% endif %}
+        </div>
+      </article>
+    {% empty %}
+      <div class="empty-state">
+        <p>No species found for this search or category.</p>
+      </div>
+    {% endfor %}
+  </section>
+{% endblock %}

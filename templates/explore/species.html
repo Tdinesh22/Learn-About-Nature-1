@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Explore Species | Learn About Nature{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/species.css' %}">
+{% endblock %}
+
+{% block content %}
+    <header class="hero page-hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Explore Nature</p>
+        <h1>Explore Species</h1>
+        <p class="hero-text">
+          Search wildlife, filter by category, and discover species with vibrant cards and details.
+        </p>
+      </div>
+
+      <div class="search-panel">
+        <label for="search-input" class="search-label">Search species</label>
+        <div class="search-box">
+          <input
+            id="search-input"
+            type="search"
+            placeholder="Search birds, mammals, reptiles..."
+            autocomplete="off"
+          />
+          <button id="clear-btn" type="button" aria-label="Clear search">×</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="filter-bar" aria-label="Species filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="birds">Birds</button>
+      <button class="filter-btn" data-filter="mammals">Mammals</button>
+      <button class="filter-btn" data-filter="insects">Insects</button>
+      <button class="filter-btn" data-filter="reptiles">Reptiles</button>
+      <button class="filter-btn" data-filter="amphibians">Amphibians</button>
+    </section>
+
+    <section class="status-row">
+      <div class="status-pill loading" id="status-pill">Loading species…</div>
+    </section>
+
+    <section class="grid-shell">
+      <div class="species-grid" id="species-grid"></div>
+
+      <div class="empty-state hidden" id="empty-state">
+        <h2>No results found</h2>
+        <p>Try a different keyword or select another category to explore more species.</p>
+      </div>
+    </section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{% static 'js/species.js' %}"></script>
+{% endblock %}

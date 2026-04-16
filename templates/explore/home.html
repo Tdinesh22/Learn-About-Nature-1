@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Learn About Nature{% endblock %}
+
+{% block content %}
+  <section class="intro-block">
+    <h2>Welcome, {{ username }}</h2>
+    <p>Explore the amazing species around you and contribute to nature conservation.</p>
+  </section>
+
+  <section class="card-grid">
+    <article class="card">
+      <h3>Species</h3>
+      <p>Discover species inside birds, insects, mammals, reptiles, amphibians, fish, and more.</p>
+      <a href="{% url 'species' %}" class="btn">Explore Species</a>
+    </article>
+
+    <article class="card">
+      <h3>Resources</h3>
+      <p>Explore expert nature resources and search species from the iNaturalist catalog.</p>
+      <a href="{% url 'resources' %}" class="btn">View Resources</a>
+    </article>
+  </section>
+
+  <section class="featured-section">
+    <div class="section-head">
+      <h3>Featured Species</h3>
+      <a href="{% url 'species_list' %}">View all</a>
+    </div>
+
+    <div class="species-grid">
+      {% for item in featured_species %}
+        <article class="species-card">
+          {% if item.image_url %}
+            <img src="{{ item.image_url }}" alt="{{ item.name }}">
+          {% endif %}
+          <div class="species-body">
+            <span class="tag">{{ item.get_category_display }}</span>
+            <h4>{{ item.name }}</h4>
+            <p>{{ item.summary|truncatechars:100 }}</p>
+            <a href="{{ item.get_absolute_url }}" class="text-link">Read more</a>
+          </div>
+        </article>
+      {% empty %}
+        <div class="empty-state">
+          <p>No species yet. Load the sample data or add species in the Django admin.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

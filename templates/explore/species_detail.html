@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if species %}{{ species.common_name|default:species.scientific_name }}{% else %}Species Details{% endif %} | Learn About Nature{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="" />
+  <style>
+    .species-insights {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      margin-top: 1.5rem;
+    }
+
+    .insights-column {
+      padding: 1.5rem;
+      border-radius: 24px;
+      background: #f7fbf7;
+      border: 1px solid rgba(47, 143, 89, 0.12);
+    }
+
+    .insights-column h3 {
+      margin-top: 0;
+      margin-bottom: 0.85rem;
+      font-size: 1.05rem;
+    }
+
+    .insights-column ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      color: #3d4f3c;
+      line-height: 1.75;
+    }
+
+    .insights-column li {
+      margin-bottom: 0.65rem;
+    }
+
+    .insights-status {
+      margin-top: 1rem;
+      color: #5f7663;
+      font-size: 0.95rem;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  {% if api_error %}
+    <section class="hero page-hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Species Details</p>
+        <h1>Species Details Unavailable</h1>
+        <p class="hero-text">
+          We couldn't load this species profile from iNaturalist right now.
+        </p>
+      </div>
+      <div class="hero-actions">
+        <a href="{% url 'species' %}" class="btn small">Back to Explore</a>
+      </div>
+    </section>
+
+    <section class="empty-state">
+      <h2>Species details are unavailable</h2>
+      <p>{{ api_error }}</p>
+      <a href="{% url 'species' %}" class="btn small">Back to Explore</a>
+    </section>
+  {% else %}
+    <section class="hero page-hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Species Details</p>
+        <h1>{{ species.common_name|default:species.scientific_name }}</h1>
+        <p class="hero-text">
+          Explore the species profile, taxonomy, image gallery, and observation map from iNaturalist.
+        </p>
+      </div>
+      <div class="hero-actions">
+        <a href="{% url 'species' %}" class="btn small">Back to Explore</a>
+      </div>
+    </section>
+
+    <section class="grid-shell">
+      <div class="species-gallery">
+        {% for image in species.gallery %}
+          <img src="{{ image }}" loading="lazy" alt="{{ species.common_name|default:species.scientific_name }}">
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="grid-shell">
+      <article class="species-card">
+        <div class="card-body">
+          <span class="badge">{{ species.iconic_taxon_name }}</span>
+          <h2>{{ species.common_name|default:species.scientific_name }}</h2>
+          <p class="scientific">{{ species.scientific_name }}</p>
+          <p>{{ species.abstract }}</p>
+          <p>{{ species.description }}</p>
+
+          <div class="taxonomy-list">
+            {% for rank, label in species.taxonomy %}
+              <p><strong>{{ rank|capfirst }}:</strong> {{ label }}</p>
+            {% endfor %}
+          </div>
+
+          <div class="species-insights">
+            <div class="insights-column">
+              <h3>Benefits</h3>
+              <ul id="benefits-list">
+                <li>Loading insights…</li>
+              </ul>
+            </div>
+            <div class="insights-column">
+              <h3>Risks</h3>
+              <ul id="risks-list">
+                <li>Loading insights…</li>
+              </ul>
+            </div>
+            <p class="insights-status" id="insights-status"></p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid-shell">
+      <div class="status-row">
+        <div class="status-pill">Observation locations</div>
+      </div>
+      {% if observations %}
+        <div id="species-map" style="min-height: 420px; border-radius: 28px; background: #eff7f0;"></div>
+      {% else %}
+        <div class="empty-state">
+          <h2>No location data available</h2>
+          <p>We couldn't find observation coordinates for this species right now.</p>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+  {{ observations|json_script:"observations-data" }}
+  <script>
+    const observations = JSON.parse(document.getElementById("observations-data").textContent || "[]");
+    const GOOGLE_KG_API_KEY = "{{ google_api_key|default:'' }}";
+    const speciesName = "{{ species.common_name|default:species.scientific_name|escapejs }}";
+
+    async function fetchSpeciesInsights(name) {
+      if (!GOOGLE_KG_API_KEY || !name) {
+        return null;
+      }
+
+      const url = new URL("https://kgsearch.googleapis.com/v1/entities:search");
+      url.searchParams.set("query", name);
+      url.searchParams.set("key", GOOGLE_KG_API_KEY);
+      url.searchParams.set("limit", "1");
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`KG API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        const element = data.itemListElement?.[0];
+        const result = element?.result;
+        return {
+          name: result?.name || name,
+          description: result?.detailedDescription?.articleBody || result?.description || null,
+        };
+      } catch (error) {
+        console.error("Google KG failed", error);
+        return null;
+      }
+    }
+
+    function generateInsights(description, name) {
+      const normalized = description ? description.toLowerCase() : "";
+      const benefits = [];
+      const risks = [];
+
+      if (description) {
+        if (normalized.includes("pollinat") || normalized.includes("nectar") || normalized.includes("flower")) {
+          benefits.push("Supports pollination and healthy plant-animal interactions.");
+        }
+        if (normalized.includes("food") || normalized.includes("diet") || normalized.includes("prey") || normalized.includes("biodiversity")) {
+          benefits.push("Plays a role in the food chain and biodiversity.");
+        }
+        if (normalized.includes("habitat") || normalized.includes("ecosystem") || normalized.includes("soil") || normalized.includes("forest")) {
+          benefits.push("Contributes to ecosystem balance and habitat health.");
+        }
+        if (normalized.includes("disease") || normalized.includes("pathogen") || normalized.includes("virus") || normalized.includes("bacteria")) {
+          risks.push("May carry or spread diseases in some regions.");
+        }
+        if (normalized.includes("invasive") || normalized.includes("introduced") || normalized.includes("non-native")) {
+          risks.push("Can become invasive and disrupt local ecosystems.");
+        }
+        if (normalized.includes("poison") || normalized.includes("toxic") || normalized.includes("sting") || normalized.includes("venom")) {
+          risks.push("May pose risks to humans or animals through toxicity or irritation.");
+        }
+      }
+
+      if (!benefits.length) {
+        benefits.push("Supports ecosystem balance.");
+        benefits.push("Important for biodiversity.");
+        benefits.push("Plays a role in food chains.");
+      }
+
+      if (!risks.length) {
+        risks.push("May carry diseases or pests.");
+        risks.push("Could cause environmental impact if invasive.");
+        risks.push("Limited human data means impacts may be uncertain.");
+      }
+
+      return { benefits, risks };
+    }
+
+    function renderInsights(insights) {
+      const benefitsList = document.getElementById("benefits-list");
+      const risksList = document.getElementById("risks-list");
+      const insightsStatus = document.getElementById("insights-status");
+
+      benefitsList.innerHTML = "";
+      risksList.innerHTML = "";
+
+      insights.benefits.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        benefitsList.appendChild(li);
+      });
+
+      insights.risks.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        risksList.appendChild(li);
+      });
+
+      insightsStatus.textContent = insights.source || "";
+    }
+
+    async function loadSpeciesInsights(name) {
+      const insightData = await fetchSpeciesInsights(name);
+
+      if (insightData && insightData.description) {
+        const insights = generateInsights(insightData.description, name);
+        insights.source = "Insights generated from Google Knowledge Graph description.";
+        renderInsights(insights);
+      } else {
+        const fallback = generateInsights(null, name);
+        fallback.source = "No significant data available";
+        renderInsights(fallback);
+      }
+    }
+
+    if (observations.length) {
+      const map = L.map("species-map", { scrollWheelZoom: false });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© OpenStreetMap contributors',
+      }).addTo(map);
+
+      const markerCluster = L.markerClusterGroup();
+      const latLngs = observations.map((point) => {
+        const marker = L.marker([point.lat, point.lng]);
+        markerCluster.addLayer(marker);
+        return [point.lat, point.lng];
+      });
+
+      map.addLayer(markerCluster);
+      const bounds = L.latLngBounds(latLngs);
+
+      if (observations.length === 1) {
+        map.setView(latLngs[0], 8);
+      } else if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
+      } else {
+        const avgLat = latLngs.reduce((sum, value) => sum + value[0], 0) / latLngs.length;
+        const avgLng = latLngs.reduce((sum, value) => sum + value[1], 0) / latLngs.length;
+        map.setView([avgLat, avgLng], 6);
+      }
+    }
+
+    loadSpeciesInsights(speciesName);
+  </script>
+{% endblock %}

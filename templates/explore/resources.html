@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Explore Nature Resources | Learn About Nature{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/resources.css' %}">
+{% endblock %}
+
+{% block content %}
+  <section class="resources-shell">
+    <div class="resources-hero">
+      <div>
+        <span class="page-label">Resources</span>
+        <h1>Explore Nature Resources</h1>
+        <p class="page-copy">
+          Search the iNaturalist species catalog for common names, scientific names, and images.
+        </p>
+      </div>
+      <div class="search-panel">
+        <input id="resource-search" type="search" placeholder="Search..." autocomplete="off" />
+        <div class="loader hidden" id="resource-loader"></div>
+      </div>
+      <div class="filter-buttons" id="filter-buttons">
+        <button type="button" class="filter-button" onclick="handleFilterChange('plant')">Plant</button>
+        <button type="button" class="filter-button" onclick="handleFilterChange('tree')">Tree</button>
+      </div>
+    </div>
+
+    <div class="results-meta">
+      <p id="result-text">Showing the latest nature results.</p>
+    </div>
+
+    <div class="results-grid" id="results-grid"></div>
+
+    <div class="empty-message hidden" id="empty-message">
+      <h2>No results found</h2>
+      <p>Try a different search term or simplify the query.</p>
+    </div>
+
+    <div class="error-message hidden" id="error-message"></div>
+  </section>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{% static 'js/resources.js' %}"></script>
+{% endblock %}
